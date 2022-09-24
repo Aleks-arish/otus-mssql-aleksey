@@ -24,7 +24,10 @@ USE WideWorldImporters
 Таблицы: Warehouse.StockItems.
 */
 
-напишите здесь свое решение
+Select WSI.StockItemID,
+	   WSI.StockItemName 
+From Warehouse.StockItems WSI
+Where WSI.StockItemName Like '%urgent%' OR  WSI.StockItemName Like 'Animal%'   
 
 /*
 2. Поставщиков (Suppliers), у которых не было сделано ни одного заказа (PurchaseOrders).
@@ -34,7 +37,9 @@ USE WideWorldImporters
 По каким колонкам делать JOIN подумайте самостоятельно.
 */
 
-напишите здесь свое решение
+Select PS.SupplierName From Purchasing.Suppliers PS Left Join  Purchasing.PurchaseOrders PPO ON
+	PS.SupplierID = PPO.SupplierID
+Where PPO.SupplierID IS NULL
 
 /*
 3. Заказы (Orders) с ценой товара (UnitPrice) более 100$ 
@@ -55,7 +60,22 @@ USE WideWorldImporters
 Таблицы: Sales.Orders, Sales.OrderLines, Sales.Customers.
 */
 
-напишите здесь свое решение
+Select  o.OrderID,
+		o.OrderDate,
+		Format(o.OrderDate, 'm', 'ru') OrderMonth,
+		DatePart(m, o.OrderDate)/3 + Case When DatePart(m, o.OrderDate) % 3 <> 0 Then 1 Else 0 End OrderNumQuarter,
+		DatePart(m, o.OrderDate)/4 + Case When DatePart(m, o.OrderDate) % 4 <> 0 Then 1 Else 0 End OrderthirdOfTheYear,	
+		C.CustomerName,
+		ol.Quantity,
+		ol.UnitPrice
+
+From Sales.Orders o 
+Inner Join Sales.Customers c ON o.CustomerID = c.CustomerID
+Inner Join Sales.OrderLines ol ON o.OrderID = ol.OrderID
+Where ol.Quantity>20 OR ol.UnitPrice>100 
+Order by OrderNumQuarter, OrderthirdOfTheYear, o.OrderDate
+offset (1000) rows fetch First 100 rows only
+
 
 /*
 4. Заказы поставщикам (Purchasing.Suppliers),
@@ -71,7 +91,15 @@ USE WideWorldImporters
 Таблицы: Purchasing.Suppliers, Purchasing.PurchaseOrders, Application.DeliveryMethods, Application.People.
 */
 
-напишите здесь свое решение
+Select	dm.DeliveryMethodName,
+		po.ExpectedDeliveryDate,
+		s.SupplierName,
+		p.FullName
+From Purchasing.Suppliers s 
+INNER JOIN Purchasing.PurchaseOrders po ON po.SupplierID = s.SupplierID
+INNER JOIN Application.DeliveryMethods dm ON dm.DeliveryMethodID = s.DeliveryMethodID
+INNER JOIN Application.People p ON p.PersonID = po.ContactPersonID
+Where po.ExpectedDeliveryDate between '20130101' AND '20130131'
 
 /*
 5. Десять последних продаж (по дате продажи) с именем клиента и именем сотрудника,
@@ -79,7 +107,10 @@ USE WideWorldImporters
 Сделать без подзапросов.
 */
 
-напишите здесь свое решение
+Select Distinct	Top 10
+		o.OrderDate
+From Sales.Orders o
+Order by o.OrderDate Desc
 
 /*
 6. Все ид и имена клиентов и их контактные телефоны,
@@ -87,4 +118,11 @@ USE WideWorldImporters
 Имя товара смотреть в таблице Warehouse.StockItems.
 */
 
-напишите здесь свое решение
+
+Select	c.CustomerID, 
+		c.CustomerName,
+		c.PhoneNumber
+From Warehouse.StockItems si
+INNER JOIN Warehouse.StockItemTransactions sit ON sit.SupplierID = si.SupplierID
+INNER JOIN Sales.Customers c ON sit.CustomerID = c.CustomerID
+Where si.StockItemName = 'Chocolate frogs 250g' 
