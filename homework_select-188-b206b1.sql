@@ -61,9 +61,9 @@ Where PPO.SupplierID IS NULL
 */
 
 Select  o.OrderID,
-		o.OrderDate,
-		Format(o.OrderDate, 'm', 'ru') OrderMonth,
-		DatePart(m, o.OrderDate)/3 + Case When DatePart(m, o.OrderDate) % 3 <> 0 Then 1 Else 0 End OrderNumQuarter,
+		Format(o.OrderDate, 'dd.MM.yyyy') OrderDate,
+		Format(o.OrderDate, 'MMMM') OrderMonth,
+		DatePart(qq, o.OrderDate) OrderNumQuarter,
 		DatePart(m, o.OrderDate)/4 + Case When DatePart(m, o.OrderDate) % 4 <> 0 Then 1 Else 0 End OrderthirdOfTheYear,	
 		C.CustomerName,
 		ol.Quantity,
@@ -72,10 +72,9 @@ Select  o.OrderID,
 From Sales.Orders o 
 Inner Join Sales.Customers c ON o.CustomerID = c.CustomerID
 Inner Join Sales.OrderLines ol ON o.OrderID = ol.OrderID
-Where ol.Quantity>20 OR ol.UnitPrice>100 
+Where (ol.Quantity>20 OR ol.UnitPrice>100 ) AND Not ol.PickingCompletedWhen IS Null
 Order by OrderNumQuarter, OrderthirdOfTheYear, o.OrderDate
 offset (1000) rows fetch First 100 rows only
-
 
 /*
 4. Заказы поставщикам (Purchasing.Suppliers),
@@ -99,7 +98,10 @@ From Purchasing.Suppliers s
 INNER JOIN Purchasing.PurchaseOrders po ON po.SupplierID = s.SupplierID
 INNER JOIN Application.DeliveryMethods dm ON dm.DeliveryMethodID = s.DeliveryMethodID
 INNER JOIN Application.People p ON p.PersonID = po.ContactPersonID
-Where po.ExpectedDeliveryDate between '20130101' AND '20130131'
+Where	(po.ExpectedDeliveryDate between '20130101' AND '20130131') AND 
+		(dm.DeliveryMethodName = 'Air Freight' OR dm.DeliveryMethodName = 'Refrigerated Air Freight') AND 
+		po.IsOrderFinalized = 1
+
 
 /*
 5. Десять последних продаж (по дате продажи) с именем клиента и именем сотрудника,
@@ -108,8 +110,12 @@ Where po.ExpectedDeliveryDate between '20130101' AND '20130131'
 */
 
 Select Distinct	Top 10
-		o.OrderDate
-From Sales.Orders o
+		o.OrderDate,
+		c.CustomerName,
+		p.FullName
+From Sales.Orders o 
+INNER JOIN Sales.Customers c ON o.CustomerID = c.CustomerID
+INNER JOIN Application.People p ON p.PersonID = o.ContactPersonID
 Order by o.OrderDate Desc
 
 /*
@@ -118,11 +124,12 @@ Order by o.OrderDate Desc
 Имя товара смотреть в таблице Warehouse.StockItems.
 */
 
-
 Select	c.CustomerID, 
 		c.CustomerName,
 		c.PhoneNumber
 From Warehouse.StockItems si
-INNER JOIN Warehouse.StockItemTransactions sit ON sit.SupplierID = si.SupplierID
-INNER JOIN Sales.Customers c ON sit.CustomerID = c.CustomerID
+INNER JOIN Warehouse.StockItemTransactions sit ON si.SupplierID = sit.SupplierID
+INNER JOIN Sales.InvoiceLines io ON sit.StockItemID = io.StockItemID
+INNER JOIN Sales.Invoices i ON io.InvoiceID = i.InvoiceID
+INNER JOIN Sales.Customers c ON i.CustomerID = c.CustomerID
 Where si.StockItemName = 'Chocolate frogs 250g' 
