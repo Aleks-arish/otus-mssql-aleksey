@@ -42,20 +42,33 @@ InvoiceMonth | Aakriti Byrraju    | Abel Spirlea       | Abel Tatarescu | ... (Ð
 */
 
 
-DECLARE @ColumnName1 NVARCHAR(2000);
+DECLARE @ColumnName1 NVARCHAR(MAX);
 
-Select  @ColumnName1 = IsNull(@ColumnName1+',','')+ quotename(cast(CustomerID as nvarchar(5))) 
-From (Select Distinct i.CustomerID 
+Select  @ColumnName1 = IsNull(@ColumnName1+',','') + quotename(cast(CustomerID as nvarchar(5))) + ' [' + CustomerName + ']'
+From (Select Distinct i.CustomerID, c.CustomerName
 	  From Sales.Invoices i
 	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
 	  Where  i.CustomerID<=500
-	 ) as columnName
+	 )  columnName
 	  Order By CustomerID
 Set @ColumnName1 = @ColumnName1 + ','
 
-DECLARE @ColumnName2 NVARCHAR(2000);
-Select  @ColumnName2 = IsNull(@ColumnName2+',','')+ quotename(cast(CustomerID as nvarchar(5))) 
-From (Select Distinct i.CustomerID 
+
+DECLARE @ColumnInd1 NVARCHAR(MAX);
+
+Select  @ColumnInd1 = IsNull(@ColumnInd1+',','') + quotename(cast(CustomerID as nvarchar(5))) 
+From (Select Distinct i.CustomerID, c.CustomerName
+	  From Sales.Invoices i
+	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
+	  Where  i.CustomerID<=500
+	 )  columnName
+	  Order By CustomerID
+Set @ColumnInd1 = @ColumnInd1 + ','
+
+
+DECLARE @ColumnName2 NVARCHAR(MAX);
+Select  @ColumnName2 = IsNull(@ColumnName2+',','')+ quotename(cast(CustomerID as nvarchar(5)))  + ' [' + CustomerName + ']'
+From (Select Distinct i.CustomerID , c.CustomerName
 	  From Sales.Invoices i
 	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
 	  Where  i.CustomerID>500 AND i.CustomerID<=1000
@@ -63,26 +76,63 @@ From (Select Distinct i.CustomerID
 	  Order By CustomerID 
 Set @ColumnName2 = @ColumnName2 + ','
 
-DECLARE @ColumnName3 NVARCHAR(2000);
-Select  @ColumnName3 = IsNull(@ColumnName3+',','')+ quotename(cast(CustomerID as nvarchar(5))) 
+
+DECLARE @ColumnInd2 NVARCHAR(MAX);
+Select  @ColumnInd2 = IsNull(@ColumnInd2+',','')+ quotename(cast(CustomerID as nvarchar(5))) 
 From (Select Distinct i.CustomerID 
+	  From Sales.Invoices i
+	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
+	  Where  i.CustomerID>500 AND i.CustomerID<=1000
+	 ) as columnName
+	  Order By CustomerID 
+Set @ColumnInd2 = @ColumnInd2 + ','
+
+DECLARE @ColumnName3 NVARCHAR(MAX);
+Select  @ColumnName3 = IsNull(@ColumnName3+',','')+ quotename(cast(CustomerID as nvarchar(5)))  + ' [' + CustomerName + ']'
+From (Select Distinct i.CustomerID , c.CustomerName
 	  From Sales.Invoices i
 	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
 	  Where  i.CustomerID>1000 AND i.CustomerID<=1500
 	 ) as columnName
 	  Order By CustomerID 
-Set @ColumnName3 = @ColumnName3 
 
-DECLARE @SQLString NVARCHAR(4000) 
-DECLARE @ParamColumn NVARCHAR(200) = N'@ColumnSqlName1 NVARCHAR(2000), @ColumnSqlName2 NVARCHAR(2000), @ColumnSqlName3 NVARCHAR(2000)'
-Set @SQLString = N'exec(''Select InvoiceMonth,''+ @ColumnSqlName1 +  @ColumnSqlName2  +  @ColumnSqlName3  + '' 
+DECLARE @ColumnInd3 NVARCHAR(MAX);
+Select  @ColumnInd3 = IsNull(@ColumnInd3+',','')+ quotename(cast(CustomerID as nvarchar(5))) 
+From (Select Distinct i.CustomerID 
+	  From Sales.Invoices i
+	  Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
+	  Where  i.CustomerID>1000 AND i.CustomerID<=1500
+	 ) as columnName
+	  Order By CustomerID --
+
+
+DECLARE @SQLString NVARCHAR(MAX) 
+DECLARE @ParamColumn NVARCHAR(1000) = N'@ColumnSqlName1 NVARCHAR(MAX), @ColumnSqlInd1 NVARCHAR(MAX), 
+									   @ColumnSqlName2 NVARCHAR(MAX), @ColumnSqlInd2 NVARCHAR(MAX),
+									   @ColumnSqlName3 NVARCHAR(MAX), @ColumnSqlInd3 NVARCHAR(MAX)'
+Set @SQLString = N'exec(''Select InvoiceMonth,''+ @ColumnSqlName1 + @ColumnSqlName2 + @ColumnSqlName3 +'' 
+	From  (	Select Format(i.InvoiceDate, ''''01.MM.yyyy'''') InvoiceMonth ,c.CustomerID, i.InvoiceID
+			From Sales.Invoices i 
+			Inner Join Sales.Customers c On c.CustomerID = i.CustomerID
+			) CustomerData
+		Pivot
+		(
+		Count(InvoiceID) For CustomerData.CustomerID in ('' + @ColumnSqlInd1 + @ColumnSqlInd2 + @ColumnSqlInd3 +'')) SvodCustomer'')'
+
+Exec sp_executesql @SQLString, @ParamColumn, @ColumnName1, @ColumnInd1, @ColumnName2, @ColumnInd2, @ColumnName3, @ColumnInd3
+
+
+
+Set @ParamColumn  = N'@ColumnSqlName1 NVARCHAR(MAX), @ColumnSqlInd1 NVARCHAR(MAX), 
+									   @ColumnSqlName2 NVARCHAR(MAX), @ColumnSqlInd2 NVARCHAR(MAX),
+									   @ColumnSqlName3 NVARCHAR(MAX), @ColumnSqlInd3 NVARCHAR(MAX)'
+Set @SQLString = N'exec(''Select InvoiceMonth,''+ @ColumnSqlName1 + @ColumnSqlName2 + @ColumnSqlName3 +'' 
 	From  (	Select Format(i.InvoiceDate, ''''01.MM.yyyy'''') InvoiceMonth ,c.CustomerID,il.Quantity
 			From Sales.InvoiceLines il
 			Inner join Sales.Invoices i On i.InvoiceID = il.InvoiceID
 			Inner Join Sales.Customers c On c.CustomerID = i.CustomerID) CustomerData
 		Pivot
 		(
-		sum(CustomerData.Quantity) For CustomerData.CustomerID in ('' + @ColumnSqlName1 + @ColumnSqlName2 + @ColumnSqlName3 + '')) SvodCustomer'')'
+		sum(CustomerData.Quantity) For CustomerData.CustomerID in ('' + @ColumnSqlInd1 + @ColumnSqlInd2 + @ColumnSqlInd3 +'')) SvodCustomer'')'
 
-Exec sp_executesql @SQLString, @ParamColumn, @ColumnName1, @ColumnName2, @ColumnName3
-
+Exec sp_executesql @SQLString, @ParamColumn, @ColumnName1, @ColumnInd1, @ColumnName2, @ColumnInd2, @ColumnName3, @ColumnInd3
