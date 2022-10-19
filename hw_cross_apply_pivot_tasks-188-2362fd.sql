@@ -122,6 +122,9 @@ Unpivot (Code For TypeCode IN(IsoAlpha3Code, IsoNumericCode)) AddressCodeUnpivot
 */
 
 
+
+
+
 Select Distinct  c.CustomerID
 		,c.CustomerName
 		,InvLin.StockItemID 
@@ -132,9 +135,31 @@ Inner Join Sales.Invoices Inv ON Inv.CustomerID = c.CustomerID
 Cross Apply (Select Distinct Top 2 il.StockItemID 
 					,il.UnitPrice
 			From Sales.InvoiceLines il 
+			Inner Join Sales.Invoices Inv ON Inv.InvoiceID = il.InvoiceID
 			Where Inv.InvoiceID = il.InvoiceID 
 			Order By il.UnitPrice DESC
 			) InvLin
+
+
+Select  a.CustomerID, Count(Distinct a.StockItemID )
+From (
+
+Select Distinct  c.CustomerID
+		,c.CustomerName
+		,InvLin.StockItemID 
+		,InvLin.UnitPrice
+		,Inv.InvoiceDate
+From Sales.Customers c
+Inner Join Sales.Invoices Inv ON Inv.CustomerID = c.CustomerID
+Cross Apply (Select Distinct Top 2 il.StockItemID 
+					,il.UnitPrice
+			From Sales.InvoiceLines il 
+			Inner Join Sales.Invoices Inv ON Inv.InvoiceID = il.InvoiceID
+			Where Inv.InvoiceID = il.InvoiceID 
+			Order By il.UnitPrice DESC
+			) InvLin
+) a Group By a.CustomerID
+Having Count(Distinct a.StockItemID )>2
 
 
 
