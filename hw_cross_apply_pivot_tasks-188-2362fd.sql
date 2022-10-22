@@ -123,70 +123,21 @@ Unpivot (Code For TypeCode IN(IsoAlpha3Code, IsoNumericCode)) AddressCodeUnpivot
 
 
 
-
-
 Select Distinct  c.CustomerID
 		,c.CustomerName
 		,InvLin.StockItemID 
 		,InvLin.UnitPrice
-		,Inv.InvoiceDate
+		,InvLin.InvoiceDate
 From Sales.Customers c
-Inner Join Sales.Invoices Inv ON Inv.CustomerID = c.CustomerID
 Cross Apply (Select Distinct Top 2 il.StockItemID 
 					,il.UnitPrice
+					,Inv.InvoiceDate
 			From Sales.InvoiceLines il 
 			Inner Join Sales.Invoices Inv ON Inv.InvoiceID = il.InvoiceID
 			Where Inv.InvoiceID = il.InvoiceID 
 			Order By il.UnitPrice DESC
 			) InvLin
-
-
-Select  a.CustomerID, Count(Distinct a.StockItemID )
-From (
-
-Select Distinct  c.CustomerID
-		,c.CustomerName
-		,InvLin.StockItemID 
-		,InvLin.UnitPrice
-		,Inv.InvoiceDate
-From Sales.Customers c
-Inner Join Sales.Invoices Inv ON Inv.CustomerID = c.CustomerID
-Cross Apply (Select Distinct Top 2 il.StockItemID 
-					,il.UnitPrice
-			From Sales.InvoiceLines il 
-			Inner Join Sales.Invoices Inv ON Inv.InvoiceID = il.InvoiceID
-			Where Inv.InvoiceID = il.InvoiceID 
-			Order By il.UnitPrice DESC
-			) InvLin
-) a Group By a.CustomerID
-Having Count(Distinct a.StockItemID )>2
-
-
-
-/*
-Пытался сделать через оконки задачу и посмотреть через планировщик, но что-то у меня не получилось
-Что-то пока тяжко мне даются эти оконки, или с Cross Apply  что-то напутал
-
-
-;With RaytingCustomerStockUnitPrice (CustomerID, CustomerName, StockItemID, UnitPrice, Place) as 
-(
-Select c2.CustomerID
-		,c2.CustomerName
-		,il2.StockItemID 
-		,il2.UnitPrice
-		,dense_rank() over (Partition By c2.CustomerID Order By il2.UnitPrice,il2.StockItemID  DESC) Place
-From Sales.Customers c2
-Inner Join Sales.Invoices i2 ON i2.CustomerID = c2.CustomerID 
-Inner Join Sales.InvoiceLines il2 ON il2.InvoiceID = i2.InvoiceID
-) 
-Select Distinct RaytingCustomerStockUnitPrice.CustomerID
-		,CustomerName
-		,StockItemID 
-		,UnitPrice
-		,i.InvoiceDate
-From RaytingCustomerStockUnitPrice
-Inner Join Sales.Invoices i ON i.CustomerID = RaytingCustomerStockUnitPrice.CustomerID
-Where Place<3
+Order by c.CustomerID
 
 
 
